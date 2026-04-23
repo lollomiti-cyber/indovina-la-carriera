@@ -23,7 +23,6 @@ if st.button("🔄 Nuova carriera"):
     st.session_state.player_id = random.choice(
         players["player_id"].unique()
     )
-``
 
 # Giocatore random
 if "player_id" not in st.session_state:
