@@ -19,8 +19,19 @@ transfers = transfers.sort_values("transfer_date")
 
 st.title("⚽ Indovina la carriera")
 
+if st.button("🔄 Nuova carriera"):
+    st.session_state.player_id = random.choice(
+        players["player_id"].unique()
+    )
+``
+
 # Giocatore random
-player_id = random.choice(players["player_id"].unique())
+if "player_id" not in st.session_state:
+    st.session_state.player_id = random.choice(
+        players["player_id"].unique()
+    )
+
+player_id = st.session_state.player_id
 
 career = (
     transfers[transfers["player_id"] == player_id]
@@ -41,3 +52,4 @@ if st.button("✅ Mostra soluzione"):
         players["player_id"] == player_id, "name"
     ].iloc[0]
     st.success(f"Il giocatore era: **{name}**")
+
