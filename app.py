@@ -8,7 +8,7 @@ DATA_PATH = "data/"
 def load_data():
     players = pd.read_csv(DATA_PATH + "players.csv")
     transfers = pd.read_csv(DATA_PATH + "transfers.csv")
-    st.write("Colonne players:", list(players.columns))
+    
     return players, transfers
 
 players, transfers = load_data()
