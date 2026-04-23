@@ -50,5 +50,5 @@ if st.button("✅ Mostra soluzione"):
     name = players.loc[
         players["player_id"] == player_id, "player_name"
     ].iloc[0]
-    st.success(f"Il giocatore era: **{player_name}**")
+    st.success(f"Il giocatore era: {player_name}")
 
