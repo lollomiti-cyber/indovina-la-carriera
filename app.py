@@ -48,7 +48,7 @@ st.dataframe(career, use_container_width=True)
 
 if st.button("✅ Mostra soluzione"):
     name = players.loc[
-        players["player_id"] == player_id, "name"
+        players["player_id"] == player_id, "player_name"
     ].iloc[0]
-    st.success(f"Il giocatore era: **{name}**")
+    st.success(f"Il giocatore era: **{player_name}**")
 
