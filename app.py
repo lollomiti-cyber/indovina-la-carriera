@@ -11,6 +11,12 @@ def load_data():
     
     return players, transfers
 
+def format_period(start_season: str, end_season: str) -> str:
+    if start_season == end_season:
+        return start_season
+    else:
+        return f"{start_season.split('/')[0]}/{end_season.split('/')[1]}"
+
 def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     # Ordina per data
     df = transfers_player.sort_values("transfer_date").copy()
@@ -37,7 +43,7 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
         else:
             career_rows.append({
                 "Squadra": current_club,
-                "Periodo": f"{start_season[:2]}/{last_season[:2]}"
+                "Periodo": format_period(start_season, last_season)
             })
             current_club = club
             start_season = season
@@ -47,7 +53,7 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     if current_club is not None:
         career_rows.append({
             "Squadra": current_club,
-            "Periodo": f"{start_season[:2]}–corrente"
+            "Periodo": format_period(start_season, last_season)
         })
 
     return pd.DataFrame(career_rows)
