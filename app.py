@@ -11,6 +11,47 @@ def load_data():
     
     return players, transfers
 
+def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
+    # Ordina per data
+    df = transfers_player.sort_values("transfer_date").copy()
+
+    # Tieni solo la prima destinazione per stagione
+    df = df.drop_duplicates(subset=["transfer_season"], keep="first")
+
+    career_rows = []
+
+    current_club = None
+    start_season = None
+    last_season = None
+
+    for _, row in df.iterrows():
+        season = row["transfer_season"]
+        club = row["to_club_name"]
+
+        if current_club is None:
+            current_club = club
+            start_season = season
+            last_season = season
+        elif club == current_club:
+            last_season = season
+        else:
+            career_rows.append({
+                "Squadra": current_club,
+                "Periodo": f"{start_season[:2]}/{last_season[:2]}"
+            })
+            current_club = club
+            start_season = season
+            last_season = season
+
+    # Ultimo periodo
+    if current_club is not None:
+        career_rows.append({
+            "Squadra": current_club,
+            "Periodo": f"{start_season[:2]}–corrente"
+        })
+
+    return pd.DataFrame(career_rows)
+
 players, transfers = load_data()
 
 # Normalizzazioni base
@@ -32,18 +73,11 @@ if "player_id" not in st.session_state:
 
 player_id = st.session_state.player_id
 
-career = (
-    transfers[transfers["player_id"] == player_id]
-    [["transfer_season", "from_club_name", "to_club_name"]]
-    .rename(columns={
-        "transfer_season": "Stagione",
-        "from_club_name": "Da",
-        "to_club_name": "A"
-    })
-    .reset_index(drop=True)
-)
+transfers_player = transfers[transfers["player_id"] == player_id]
 
-st.subheader("📜 Trasferimenti")
+career = build_career(transfers_player)
+
+st.subheader("🏟️ Carriera")
 st.dataframe(career, use_container_width=True)
 
 if st.button("✅ Mostra soluzione"):
