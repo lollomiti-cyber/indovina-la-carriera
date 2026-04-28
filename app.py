@@ -12,7 +12,7 @@ def load_data():
     return players, transfers
 
 def is_first_team(club_name: str) -> bool:
-    blacklist = ["U21", "U23" ,"U19", "U18", "U17", "Primavera", "Youth", " B", " II"]
+    blacklist = ["U21", "U23" ,"U19", "U18", "U17", "Primavera", "Yth.", "Youth", " B", " II"]
     return not any(x in club_name for x in blacklist)
 
 def season_to_year(season: str) -> int:
