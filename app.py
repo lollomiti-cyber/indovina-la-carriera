@@ -11,11 +11,20 @@ def load_data():
     
     return players, transfers
 
-def format_period(start_season: str, end_season: str) -> str:
-    if start_season == end_season:
-        return start_season
-    else:
-        return f"{start_season.split('/')[0]}/{end_season.split('/')[1]}"
+def is_first_team(club_name: str) -> bool:
+    blacklist = ["U21", "U23" ,"U19", "U18", "U17", "Primavera", "Youth", " B", " II"]
+    return not any(x in club_name for x in blacklist)
+
+def season_to_year(season: str) -> int:
+    # "2021/2022" → 21
+    return int(season.split("/")[0][-2:])
+
+def format_period(start_season: str, end_season: str, is_current=False) -> str:
+    start_year = season_to_year(start_season)
+    if is_current:
+        return f"{start_year}-corrente"
+    end_year = season_to_year(end_season) + 1
+    return f"{start_year}-{end_year}"
 
 def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     # Ordina per data
@@ -49,11 +58,11 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
             start_season = season
             last_season = season
 
-    # Ultimo periodo
+    # Ultima squadra = corrente
     if current_club is not None:
         career_rows.append({
             "Squadra": current_club,
-            "Periodo": format_period(start_season, last_season)
+            "Periodo": format_period(start_season, last_season, is_current=True)
         })
 
     return pd.DataFrame(career_rows)
@@ -80,6 +89,7 @@ if "player_id" not in st.session_state:
 player_id = st.session_state.player_id
 
 transfers_player = transfers[transfers["player_id"] == player_id]
+transfers_player = transfers_player[transfers_player["to_club_name"].apply(is_first_team)]
 
 career = build_career(transfers_player)
 
