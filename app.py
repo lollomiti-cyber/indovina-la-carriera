@@ -147,4 +147,4 @@ if st.button("✅ Mostra soluzione"):
         players["player_id"] == player_id, "player_name"
     ].iloc[0]
     st.success(f"Il giocatore era: {name}")
-``
+
