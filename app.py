@@ -27,45 +27,62 @@ def format_period(start_season: str, end_season: str, is_current=False) -> str:
     return f"{start_year}-{end_year}"
 
 def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
-    # Ordina per data
-    df = transfers_player.sort_values("transfer_date").copy()
-
-    # Tieni solo la prima destinazione per stagione
-    df = df.drop_duplicates(subset=["transfer_season"], keep="first")
+    df = (
+        transfers_player
+        .sort_values("transfer_date")
+        .reset_index(drop=True)
+    )
 
     career_rows = []
 
     current_club = None
-    start_season = None
-    last_season = None
+    start_year = None
 
     for _, row in df.iterrows():
-        season = row["transfer_season"]
         club = row["to_club_name"]
+        year = int(row["transfer_season"].split("/")[0])
 
         if current_club is None:
+            # primo stint
             current_club = club
-            start_season = season
-            last_season = season
+            start_year = year
+
         elif club == current_club:
-            last_season = season
+            # prestito, rientro, riscatto → IGNORA
+            continue
+
         else:
+            # nuovo club reale → chiudi stint precedente
             career_rows.append({
                 "Squadra": current_club,
-                "Periodo": format_period(start_season, last_season)
+                "start_year": start_year,
+                "end_year": year
             })
             current_club = club
-            start_season = season
-            last_season = season
+            start_year = year
 
-    # Ultima squadra = corrente
+    # ultimo stint
     if current_club is not None:
         career_rows.append({
             "Squadra": current_club,
-            "Periodo": format_period(start_season, last_season, is_current=True)
+            "start_year": start_year,
+            "end_year": None
         })
 
-    return pd.DataFrame(career_rows)
+    # formatting finale
+    output = []
+    for row in career_rows:
+        if row["end_year"] is None:
+            period = f"{str(row['start_year'])[-2:]}-corrente"
+        else:
+            period = f"{str(row['start_year'])[-2:]}-{str(row['end_year'])[-2:]}"
+
+        output.append({
+            "Squadra": row["Squadra"],
+            "Periodo": period
+        })
+
+    return pd.DataFrame(output)
 
 players, transfers = load_data()
 
