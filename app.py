@@ -31,7 +31,7 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     df = transfers_player.sort_values("transfer_date").copy()
 
     # Tieni solo la prima destinazione per stagione
-    df = df.drop_duplicates(subset=["transfer_season"], keep="last")
+    df = df.drop_duplicates(subset=["transfer_season"], keep="first")
 
     career_rows = []
 
