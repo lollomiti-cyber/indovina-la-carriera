@@ -8,7 +8,7 @@ DATA_PATH = "data/"
 # DATA LOADING
 # =========================
 
-MIN_REAL_STINT_DAYS = 90
+MIN_REAL_STINT_DAYS = 30
 
 @st.cache_data
 def load_data():
