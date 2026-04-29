@@ -109,14 +109,14 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
         start_year = stint["start_date"].year
 
         if stint["end_date"] is None:
-            periodo = f"{str(start_year)[-2:]}-corrente"
+            periodo = f"{str(start_year)}/corrente"
         else:
             end_year = stint["end_date"].year
 
             if start_year == end_year:
                 periodo = f"{start_year}"
             else:
-                periodo = f"{str(start_year)[-2:]}-{str(end_year)[-2:]}"
+                periodo = f"{str(start_year)}/{str(end_year)}"
 
         output.append({
             "Squadra": stint["club"],
