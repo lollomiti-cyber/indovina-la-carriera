@@ -166,9 +166,21 @@ career = build_career(transfers_player)
 st.subheader("🏟️ Carriera")
 st.table(career)
 
-if st.button("✅ Mostra soluzione"):
-    name = players.loc[
+player_names = players["player_name"].sort_values().unique()
+
+guess = st.selectbox(
+    "✍️ Chi è il giocatore?",
+    options=player_names,
+    index=None,
+    placeholder="Inizia a scrivere il nome..."
+)
+
+if guess:
+    solution = players.loc[
         players["player_id"] == player_id, "player_name"
     ].iloc[0]
-    st.success(f"Il giocatore era: {name}")
 
+    if guess == solution:
+        st.success("🎉 Bravo! Giocatore indovinato!")
+    else:
+        st.error("❌ Non è lui, riprova!")
