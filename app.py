@@ -52,55 +52,55 @@ def final_club_per_season(transfers_player: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-
 def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
-    df = final_club_per_season(transfers_player)
+    df = (
+        transfers_player
+        .sort_values("transfer_date")
+        .reset_index(drop=True)
+    )
 
-    career_rows = []
-
-    current_club = None
-    start_year = None
+    stints = []
 
     for _, row in df.iterrows():
         club = row["to_club_name"]
-        year = season_start_year(row["transfer_season"])
+        start_year = int(row["transfer_season"].split("/")[0])
 
-        if current_club is None:
-            current_club = club
-            start_year = year
-
-        elif club != current_club:
-            career_rows.append({
-                "Squadra": current_club,
+        if not stints:
+            stints.append({
+                "club": club,
                 "start": start_year,
-                "end": year
+                "end": None
             })
-            current_club = club
-            start_year = year
+            continue
 
-    # ultimo stint
-    if current_club is not None:
-        career_rows.append({
-            "Squadra": current_club,
+        last = stints[-1]
+
+        # Caso 1: rientro tecnico / prestito (A → B → A)
+        if club == last["club"]:
+            continue
+
+        # Caso 2: vero cambio club
+        last["end"] = start_year
+        stints.append({
+            "club": club,
             "start": start_year,
             "end": None
         })
 
     # formatting finale
     output = []
-    for c in career_rows:
-        if c["end"] is None:
-            periodo = f"{str(c['start'])[-2:]}-corrente"
+    for stint in stints:
+        if stint["end"] is None:
+            periodo = f"{str(stint['start'])[-2:]}-corrente"
         else:
-            periodo = f"{str(c['start'])[-2:]}-{str(c['end'])[-2:]}"
+            periodo = f"{str(stint['start'])[-2:]}-{str(stint['end'])[-2:]}"
 
         output.append({
-            "Squadra": c["Squadra"],
+            "Squadra": stint["club"],
             "Periodo": periodo
         })
 
     return pd.DataFrame(output)
-
 
 # =========================
 # APP
