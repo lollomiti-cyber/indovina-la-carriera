@@ -26,6 +26,8 @@ def is_first_team(club_name: str) -> bool:
     ]
     return not any(x in club_name for x in blacklist)
 
+def year_from_date(date: pd.Timestamp) -> int:
+    return date.year
 
 def season_start_year(season: str) -> int:
     # "2018/2019" -> 2018
@@ -63,27 +65,27 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 
     for _, row in df.iterrows():
         club = row["to_club_name"]
-        start_year = int(row["transfer_season"].split("/")[0])
+        year = year_from_date(row["transfer_date"])
 
         if not stints:
             stints.append({
                 "club": club,
-                "start": start_year,
+                "start": year,
                 "end": None
             })
             continue
 
         last = stints[-1]
 
-        # Caso 1: rientro tecnico / prestito (A → B → A)
+        # RUMORE: rientro nello stesso club
         if club == last["club"]:
             continue
 
-        # Caso 2: vero cambio club
-        last["end"] = start_year
+        # vero cambio club
+        last["end"] = year
         stints.append({
             "club": club,
-            "start": start_year,
+            "start": year,
             "end": None
         })
 
