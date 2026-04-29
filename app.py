@@ -5,17 +5,21 @@ import random
 DATA_PATH = "data/"
 
 # =========================
-# DATA LOADING
+# CONFIG
 # =========================
 
 MIN_REAL_STINT_DAYS = 30
+MAX_ATTEMPTS = 3
+
+# =========================
+# DATA LOADING
+# =========================
 
 @st.cache_data
 def load_data():
     players = pd.read_csv(DATA_PATH + "players.csv")
     transfers = pd.read_csv(DATA_PATH + "transfers.csv")
     return players, transfers
-
 
 # =========================
 # UTILS
@@ -28,33 +32,9 @@ def is_first_team(club_name: str) -> bool:
     ]
     return not any(x in club_name for x in blacklist)
 
-def year_from_date(date: pd.Timestamp) -> int:
-    return date.year
-
-def season_start_year(season: str) -> int:
-    # "2018/2019" -> 2018
-    return int(season.split("/")[0])
-
-
 # =========================
 # CORE LOGIC
 # =========================
-
-def final_club_per_season(transfers_player: pd.DataFrame) -> pd.DataFrame:
-    """
-    Per ogni stagione tiene SOLO il club finale
-    (risolve prestiti + rientri + riscatti)
-    """
-    df = transfers_player.sort_values("transfer_date")
-
-    df = (
-        df.groupby("transfer_season", as_index=False)
-        .last()
-        .sort_values("transfer_season")
-        .reset_index(drop=True)
-    )
-
-    return df
 
 def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     df = (
@@ -68,14 +48,13 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     for i, row in df.iterrows():
         club = row["to_club_name"]
         start_date = row["transfer_date"]
-        start_year = start_date.year
 
         # durata fino al prossimo trasferimento
         if i < len(df) - 1:
             next_date = df.iloc[i + 1]["transfer_date"]
             duration_days = (next_date - start_date).days
         else:
-            duration_days = None  # ultimo club
+            duration_days = None
 
         if not stints:
             stints.append({
@@ -87,7 +66,7 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 
         last = stints[-1]
 
-        # RUMORE: ritorno allo stesso club
+        # RUMORE: rientro nello stesso club
         if club == last["club"]:
             continue
 
@@ -109,14 +88,14 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
         start_year = stint["start_date"].year
 
         if stint["end_date"] is None:
-            periodo = f"{str(start_year)}-corrente"
+            periodo = f"{start_year}-corrente"
         else:
             end_year = stint["end_date"].year
 
             if start_year == end_year:
                 periodo = f"{start_year}"
             else:
-                periodo = f"{str(start_year)}-{str(end_year)}"
+                periodo = f"{start_year}-{end_year}"
 
         output.append({
             "Squadra": stint["club"],
@@ -124,7 +103,6 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
         })
 
     return pd.DataFrame(output)
-
 
 # =========================
 # APP
@@ -139,15 +117,21 @@ transfers["transfer_date"] = pd.to_datetime(
 
 st.title("⚽ Indovina la carriera")
 
-if st.button("🔄 Nuova carriera"):
-    st.session_state.player_id = random.choice(
-        players["player_id"].unique()
-    )
-
+# Inizializzazione stato
 if "player_id" not in st.session_state:
-    st.session_state.player_id = random.choice(
-        players["player_id"].unique()
-    )
+    st.session_state.player_id = random.choice(players["player_id"].unique())
+
+if "attempts_left" not in st.session_state:
+    st.session_state.attempts_left = MAX_ATTEMPTS
+
+if "solved" not in st.session_state:
+    st.session_state.solved = False
+
+# Nuova carriera
+if st.button("🔄 Nuova carriera"):
+    st.session_state.player_id = random.choice(players["player_id"].unique())
+    st.session_state.attempts_left = MAX_ATTEMPTS
+    st.session_state.solved = False
 
 player_id = st.session_state.player_id
 
@@ -166,21 +150,35 @@ career = build_career(transfers_player)
 st.subheader("🏟️ Carriera")
 st.table(career)
 
+# Tentativi rimasti
+st.info(f"🎯 Tentativi rimasti: {st.session_state.attempts_left}")
+
+# Input con suggerimenti live
 player_names = players["player_name"].sort_values().unique()
 
 guess = st.selectbox(
     "✍️ Chi è il giocatore?",
     options=player_names,
     index=None,
-    placeholder="Inizia a scrivere il nome..."
+    placeholder="Inizia a scrivere il nome...",
+    disabled=st.session_state.solved
 )
 
-if guess:
+# Verifica risposta
+if guess and not st.session_state.solved:
     solution = players.loc[
         players["player_id"] == player_id, "player_name"
     ].iloc[0]
 
     if guess == solution:
         st.success("🎉 Bravo! Giocatore indovinato!")
+        st.session_state.solved = True
     else:
-        st.error("❌ Non è lui, riprova!")
+        st.session_state.attempts_left -= 1
+
+        if st.session_state.attempts_left > 0:
+            st.error("❌ Non è lui, riprova!")
+        else:
+            st.error("❌ Tentativi esauriti!")
+            st.warning(f"✅ Il giocatore era: **{solution}**")
+            st.session_state.solved = True
