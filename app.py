@@ -28,7 +28,7 @@ def load_data():
 def is_first_team(club_name: str) -> bool:
     blacklist = [
         "U17", "U18", "U19", "Primavera",
-        "Youth", " B", " II", "Yth."
+        "Youth", " B", " II", "Yth.", "U15"
     ]
     return not any(x in club_name for x in blacklist)
 
