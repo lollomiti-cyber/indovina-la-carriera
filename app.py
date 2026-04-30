@@ -147,30 +147,30 @@ transfers_player = transfers_player[
 
 career = build_career(transfers_player)
 
-# Tentativi rimasti
-st.info(f"🎯 Tentativi rimasti: {st.session_state.attempts_left}")
+col_input, col_career = st.columns([1, 3])
 
-# Input con suggerimenti live
-player_names = players["player_name"].sort_values().unique()
+with col_input:
+    st.info(f"🎯 Tentativi rimasti: {st.session_state.attempts_left}")
 
-if st.button("👁️ Rivela giocatore"):
-    solution = players.loc[
-        players["player_id"] == player_id, "player_name"
-    ].iloc[0]
+    guess = st.selectbox(
+        "✍️ Chi è il giocatore?",
+        options=player_names,
+        index=None,
+        placeholder="Inizia a scrivere il nome...",
+        disabled=st.session_state.solved
+    )
 
-    st.warning(f"✅ Il giocatore era: **{solution}**")
-    st.session_state.solved = True
+    if st.button("👁️ Rivela giocatore"):
+        solution = players.loc[
+            players["player_id"] == player_id, "player_name"
+        ].iloc[0]
+        st.warning(f"✅ Il giocatore era: **{solution}**")
+        st.session_state.solved = True
 
-guess = st.selectbox(
-    "✍️ Chi è il giocatore?",
-    options=player_names,
-    index=None,
-    placeholder="Inizia a scrivere il nome...",
-    disabled=st.session_state.solved
-)
+with col_career:
+    st.subheader("🏟️ Carriera")
+    st.table(career)
 
-st.subheader("🏟️ Carriera")
-st.table(career)
 
 # Verifica risposta
 if guess and not st.session_state.solved:
