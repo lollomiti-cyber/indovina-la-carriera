@@ -27,8 +27,8 @@ def load_data():
 
 def is_first_team(club_name: str) -> bool:
     blacklist = [
-        "U17", "U18", "U19", "Primavera",
-        "Youth", " B", " II", "Yth.", "U15"
+        "U15", "U17", "U18", "U19",
+        "Primavera", "Youth", " B", " II", "Yth."
     ]
     return not any(x in club_name for x in blacklist)
 
@@ -66,7 +66,7 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 
         last = stints[-1]
 
-        # RUMORE: rientro nello stesso club
+        # RUMORE: ritorno allo stesso club
         if club == last["club"]:
             continue
 
@@ -91,7 +91,6 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
             periodo = f"{start_year}-corrente"
         else:
             end_year = stint["end_date"].year
-
             if start_year == end_year:
                 periodo = f"{start_year}"
             else:
@@ -115,9 +114,12 @@ transfers["transfer_date"] = pd.to_datetime(
     errors="coerce"
 )
 
+# ✅ DEFINITO QUI (PRIMA DEL LAYOUT)
+player_names = players["player_name"].sort_values().unique()
+
 st.title("⚽ Indovina la carriera")
 
-# Inizializzazione stato
+# Stato
 if "player_id" not in st.session_state:
     st.session_state.player_id = random.choice(players["player_id"].unique())
 
@@ -135,17 +137,20 @@ if st.button("🔄 Nuova carriera"):
 
 player_id = st.session_state.player_id
 
-# filtra trasferimenti del giocatore
+# Trasferimenti giocatore
 transfers_player = transfers[
     transfers["player_id"] == player_id
 ]
 
-# filtra solo prime squadre
 transfers_player = transfers_player[
     transfers_player["to_club_name"].apply(is_first_team)
 ]
 
 career = build_career(transfers_player)
+
+# =========================
+# LAYOUT
+# =========================
 
 col_input, col_career = st.columns([1, 3])
 
@@ -171,8 +176,10 @@ with col_career:
     st.subheader("🏟️ Carriera")
     st.table(career)
 
+# =========================
+# VERIFICA RISPOSTA
+# =========================
 
-# Verifica risposta
 if guess and not st.session_state.solved:
     solution = players.loc[
         players["player_id"] == player_id, "player_name"
