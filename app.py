@@ -33,6 +33,25 @@ def load_data():
 # UTILS
 # =========================
 
+def get_pool(config):
+    current_year = pd.Timestamp.now().year
+    min_year = current_year - 5
+
+    if config["big"]:
+        base_pool = players_big
+    else:
+        base_pool = players_not_big
+
+    if config["recent"]:
+        return transfers[
+            (transfers["player_id"].isin(base_pool)) &
+            (transfers["transfer_date"].dt.year >= min_year) &
+            (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
+        ]["player_id"].unique()
+    
+    return base_pool
+
+
 def is_first_team(club_name: str) -> bool:
     blacklist = [
         "U15", "U17", "U18", "U19",
@@ -45,12 +64,7 @@ def is_first_team(club_name: str) -> bool:
 # =========================
 
 def reset_game():
-    # scelta pool in base al livello
-    if config["big"]:
-        pool = players_big
-    else:
-        pool = players_not_big
-
+    pool = get_pool(config)
     st.session_state.player_id = random.choice(pool)
     st.session_state.attempts_left = MAX_ATTEMPTS
     st.session_state.solved = False
@@ -146,26 +160,9 @@ level = st.selectbox(
     format_func=lambda x: f"Livello {x}"
 )
 config = LEVELS[level]
+pool = get_pool(config)
 
-current_year = pd.Timestamp.now().year
-min_year = current_year - 5
 
-if config["big"]:
-    base_pool = players_big
-else:
-    base_pool = players_not_big
-
-if config["recent"]:
-    # ✅ tieni solo player che hanno giocato IN ITALIA negli ultimi 5 anni
-    recent_players = transfers[
-        (transfers["player_id"].isin(base_pool)) &
-        (transfers["transfer_date"].dt.year >= min_year) &
-        (transfers["to_club_id"].isin(italian_clubs_ids))
-    ]["player_id"].unique()
-
-    pool = recent_players
-else:
-    pool = base_pool
 player_names = players[players["player_id"].isin(pool)]["player_name"].sort_values().unique()
 
 if "last_level" not in st.session_state:
