@@ -191,7 +191,7 @@ if config["recent"]:
     current_year = pd.Timestamp.now().year
     min_year = current_year - 5
 
-    career = career[career["Periodo"].str.extract(r"(\d{4})")[0].astype(int) >= min_year]
+    career = career[career["Periodo"].str.extract(r"(\d{4})(?!.*\d{4})")[0].astype(int) >= min_year]
 
 # =========================
 # LAYOUT
