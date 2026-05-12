@@ -10,6 +10,13 @@ DATA_PATH = "data/"
 
 MIN_REAL_STINT_DAYS = 30
 MAX_ATTEMPTS = 3
+BIG_CLUBS_IDS = [506, 46, 5, 6195, 12]  # Juve, Inter, Milan, Napoli, Roma
+LEVELS = {
+    1: {"big": True,  "recent": True},
+    2: {"big": True, "recent": False},
+    3: {"big": False,  "recent": True},
+    4: {"big": False, "recent": False}
+}
 
 # =========================
 # DATA LOADING
@@ -36,6 +43,19 @@ def is_first_team(club_name: str) -> bool:
 # =========================
 # CORE LOGIC
 # =========================
+
+def reset_game():
+    # scelta pool in base al livello
+    if config["big"]:
+        pool = players_big
+    else:
+        pool = players_not_big
+
+    st.session_state.player_id = random.choice(pool)
+    st.session_state.attempts_left = MAX_ATTEMPTS
+    st.session_state.solved = False
+    st.session_state.guess_input = None
+    
 
 def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
     df = (
@@ -112,18 +132,37 @@ players, transfers, clubs = load_data()
 
 transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"],errors="coerce")
 italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
-
-players_in_italy = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) |(transfers["from_club_id"].isin(italian_clubs_ids))]["player_id"].unique()
-players = players[players["player_id"].isin(players_in_italy)]
+players_italy = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) | (transfers["from_club_id"].isin(italian_clubs_ids))]["player_id"].unique()
+players_big = transfers[((transfers["to_club_id"].isin(BIG_CLUBS_IDS)) | (transfers["from_club_id"].isin(BIG_CLUBS_IDS))) & (transfers["player_id"].isin(players_italy))]["player_id"].unique()
+players_not_big = [pid for pid in players_italy if pid not in players_big]
 
 # ✅ DEFINITO QUI (PRIMA DEL LAYOUT)
-player_names = players["player_name"].sort_values().unique()
 
 st.title("⚽ Indovina la carriera 🇮🇹")
 
+level = st.selectbox(
+    "🎚️ Livello",
+    options=[1, 2, 3, 4],
+    format_func=lambda x: f"Livello {x}"
+)
+config = LEVELS[level]
+
+if config["big"]:
+    pool = players_big
+else:
+    pool = players_not_big
+player_names = players[players["player_id"].isin(pool)]["player_name"].sort_values().unique()
+
+if "last_level" not in st.session_state:
+    st.session_state.last_level = level
+
+if level != st.session_state.last_level:
+    reset_game()
+    st.session_state.last_level = level
+
 # Stato
 if "player_id" not in st.session_state:
-    st.session_state.player_id = random.choice(players["player_id"].unique())
+    reset_game()
 
 if "attempts_left" not in st.session_state:
     st.session_state.attempts_left = MAX_ATTEMPTS
@@ -132,10 +171,8 @@ if "solved" not in st.session_state:
     st.session_state.solved = False
 
 # Nuova carriera
-if st.button("🔄 Nuova carriera"):
-    st.session_state.player_id = random.choice(players["player_id"].unique())
-    st.session_state.attempts_left = MAX_ATTEMPTS
-    st.session_state.solved = False
+if st.button("🔄 Reset game"):
+    reset_game()
 
 player_id = st.session_state.player_id
 
@@ -149,6 +186,12 @@ transfers_player = transfers_player[
 ]
 
 career = build_career(transfers_player)
+
+if config["recent"]:
+    current_year = pd.Timestamp.now().year
+    min_year = current_year - 5
+
+    career = career[career["Periodo"].str.extract(r"(\d{4})")[0].astype(int) >= min_year]
 
 # =========================
 # LAYOUT
@@ -164,7 +207,8 @@ with col_input:
         options=player_names,
         index=None,
         placeholder="Inizia a scrivere il nome...",
-        disabled=st.session_state.solved
+        disabled=st.session_state.solved,
+        key="guess_input"
     )
 
     if st.button("👁️ Rivela giocatore"):
