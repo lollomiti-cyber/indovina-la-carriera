@@ -114,7 +114,7 @@ transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"],errors="c
 italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
 
 players_in_italy = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) |(transfers["from_club_id"].isin(italian_clubs_ids))]["player_id"].unique()
-players = players[players["player_id"].isin(valid_players)]
+players = players[players["player_id"].isin(players_in_italy)]
 
 # ✅ DEFINITO QUI (PRIMA DEL LAYOUT)
 player_names = players["player_name"].sort_values().unique()
