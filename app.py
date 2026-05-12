@@ -109,12 +109,12 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 # =========================
 
 players, transfers, clubs = load_data()
-players = players[players["player_id"].isin(valid_players)]
 
 transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"],errors="coerce")
 italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
 transfers = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) | (transfers["from_club_id"].isin(italian_clubs_ids))]
 valid_players = transfers["player_id"].unique()
+players = players[players["player_id"].isin(valid_players)]
 
 # ✅ DEFINITO QUI (PRIMA DEL LAYOUT)
 player_names = players["player_name"].sort_values().unique()
