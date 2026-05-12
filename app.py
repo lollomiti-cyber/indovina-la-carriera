@@ -147,10 +147,25 @@ level = st.selectbox(
 )
 config = LEVELS[level]
 
+current_year = pd.Timestamp.now().year
+min_year = current_year - 5
+
 if config["big"]:
-    pool = players_big
+    base_pool = players_big
 else:
-    pool = players_not_big
+    base_pool = players_not_big
+
+if config["recent"]:
+    # ✅ tieni solo player che hanno giocato IN ITALIA negli ultimi 5 anni
+    recent_players = transfers[
+        (transfers["player_id"].isin(base_pool)) &
+        (transfers["transfer_date"].dt.year >= min_year) &
+        (transfers["to_club_id"].isin(italian_clubs_ids))
+    ]["player_id"].unique()
+
+    pool = recent_players
+else:
+    pool = base_pool
 player_names = players[players["player_id"].isin(pool)]["player_name"].sort_values().unique()
 
 if "last_level" not in st.session_state:
@@ -186,12 +201,6 @@ transfers_player = transfers_player[
 ]
 
 career = build_career(transfers_player)
-
-if config["recent"]:
-    current_year = pd.Timestamp.now().year
-    min_year = current_year - 5
-
-    career = career[career["Periodo"].str.extract(r"(\d{4})(?!.*\d{4})")[0].astype(int) >= min_year]
 
 # =========================
 # LAYOUT
