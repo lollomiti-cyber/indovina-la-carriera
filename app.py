@@ -19,7 +19,8 @@ MAX_ATTEMPTS = 3
 def load_data():
     players = pd.read_csv(DATA_PATH + "players.csv")
     transfers = pd.read_csv(DATA_PATH + "transfers.csv")
-    return players, transfers
+    clubs = pd.read_csv(DATA_PATH + "clubs.csv")
+    return players, transfers, clubs
 
 # =========================
 # UTILS
@@ -107,7 +108,12 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 # APP
 # =========================
 
-players, transfers = load_data()
+players, transfers, clubs = load_data()
+
+italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
+transfers = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) | (transfers["from_club_id"].isin(italian_clubs_ids))]
+valid_players = transfers["player_id"].unique()
+players = players[layers["player_id"].isin(valid_players)]
 
 transfers["transfer_date"] = pd.to_datetime(
     transfers["transfer_date"],
