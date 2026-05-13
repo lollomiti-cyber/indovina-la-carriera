@@ -11,11 +11,11 @@ DATA_PATH = "data/"
 MIN_REAL_STINT_DAYS = 30
 MAX_ATTEMPTS = 3
 BIG_CLUBS_IDS = [506, 46, 5, 6195, 12]  # Juve, Inter, Milan, Napoli, Roma
+SEMI_BIG_CLUBS_IDS = [1025, 430, 398, 800]
 LEVELS = {
-    1: {"big": True,  "recent": True},
-    2: {"big": True, "recent": False},
-    3: {"big": False,  "recent": True},
-    4: {"big": False, "recent": False}
+    1: {"level": 1},
+    2: {"level": 2},
+    3: {"level": 3},
 }
 
 # =========================
@@ -33,34 +33,17 @@ def load_data():
 # UTILS
 # =========================
 
+
 def get_pool(config):
 
-    if config["big"]:
-        base = player_stats[player_stats["has_big"] == True]
-    else:
-        base = player_stats[player_stats["has_big"] == False]
+    if config["level"] == 1:
+        return players_big
 
-    if config["recent"]:
-        if config["big"]:
-            # BIG recenti
-            return base[base["has_big_recent"] == True]["player_id"].values
-        else:
-            # NO BIG recenti
-            return base[base["has_recent"] == True]["player_id"].values
+    elif config["level"] == 2:
+        return players_level2
 
     else:
-        if config["big"]:
-            # BIG non recenti
-            return base[
-                (base["has_big"] == True) &
-                (base["has_big_recent"] == False)
-            ]["player_id"].values
-
-        else:
-            # NO BIG non recenti
-            return base[
-                base["has_recent"] == False
-            ]["player_id"].values
+        return players_level3
 
 
 def is_first_team(club_name: str) -> bool:
@@ -157,27 +140,12 @@ players, transfers, clubs = load_data()
 
 transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"], errors="coerce")
 transfers = transfers.dropna(subset=["transfer_date"])
-current_year = pd.Timestamp.now().year
-min_year = current_year - 5
-
-# groupby per player
-player_stats = transfers.groupby("player_id").agg(
-    has_big=("to_club_id", lambda x: x.isin(BIG_CLUBS_IDS).any()),
-    has_big_recent=("transfer_date", lambda x: any(
-        (transfers.loc[x.index, "to_club_id"].isin(BIG_CLUBS_IDS)) &
-        (transfers.loc[x.index, "transfer_date"].dt.year >= min_year)
-    )),
-    has_recent=("transfer_date", lambda x: any(
-        transfers.loc[x.index, "transfer_date"].dt.year >= min_year
-    ))
-).reset_index()
-
-
-transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"],errors="coerce")
 italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
 players_italy = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) | (transfers["from_club_id"].isin(italian_clubs_ids))]["player_id"].unique()
 players_big = transfers[((transfers["to_club_id"].isin(BIG_CLUBS_IDS)) | (transfers["from_club_id"].isin(BIG_CLUBS_IDS))) & (transfers["player_id"].isin(players_italy))]["player_id"].unique()
-players_not_big = [pid for pid in players_italy if pid not in players_big]
+players_semi_big = transfers[((transfers["to_club_id"].isin(SEMI_BIG_CLUBS_IDS)) | (transfers["from_club_id"].isin(SEMI_BIG_CLUBS_IDS))) & (transfers["player_id"].isin(players_italy))]["player_id"].unique()
+players_level2 = [pid for pid in players_semi_big if pid not in players_big]
+players_level3 = [pid for pid in players_italy if pid not in players_big and pid not in players_semi_big]
 
 # ✅ DEFINITO QUI (PRIMA DEL LAYOUT)
 
@@ -185,7 +153,7 @@ st.title("⚽ Indovina la carriera 🇮🇹")
 
 level = st.selectbox(
     "🎚️ Livello",
-    options=[1, 2, 3, 4],
+    options=[1, 2, 3],
     format_func=lambda x: f"Livello {x}"
 )
 config = LEVELS[level]
