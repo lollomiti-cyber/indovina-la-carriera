@@ -37,59 +37,65 @@ def get_pool(config):
     current_year = pd.Timestamp.now().year
     min_year = current_year - 5
 
+    # 🔹 base pool: Italia già filtrata a monte
     if config["big"]:
         base_pool = players_big
     else:
         base_pool = players_not_big
 
+    # =========================
+    # ✅ LIVELLI RECENTI
+    # =========================
     if config["recent"]:
         if config["big"]:
-            # ✅ BIG RECENTI → ha giocato in una big negli ultimi 5 anni
-            return transfers[
-                (transfers["player_id"].isin(base_pool)) &
-                (transfers["transfer_date"].dt.year >= min_year) &
-                (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
-            ]["player_id"].unique()
+            # ✅ LIVELLO 1 → BIG recenti
+            return list({
+                pid for pid in base_pool
+                if len(transfers[
+                    (transfers["player_id"] == pid) &
+                    (transfers["transfer_date"].dt.year >= min_year) &
+                    (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
+                ]) > 0
+            })
 
         else:
-            # ✅ NO BIG RECENTI → italiani recenti senza big
-            return transfers[
-                (transfers["player_id"].isin(base_pool)) &
-                (transfers["transfer_date"].dt.year >= min_year) &
-                (transfers["to_club_id"].isin(italian_clubs_ids))
-            ]["player_id"].unique()
+            # ✅ LIVELLO 3 → NO BIG ma recenti (Italia)
+            return list({
+                pid for pid in base_pool
+                if len(transfers[
+                    (transfers["player_id"] == pid) &
+                    (transfers["transfer_date"].dt.year >= min_year) &
+                    (transfers["to_club_id"].isin(italian_clubs_ids))
+                ]) > 0
+            })
 
+    # =========================
+    # ✅ LIVELLI NON RECENTI
+    # =========================
     else:
         if config["big"]:
-            # ✅ BIG NON RECENTI → ha giocato in una big MA NON negli ultimi 5 anni
-            return [
+            # ✅ LIVELLO 2 → BIG ma NON recenti
+            return list({
                 pid for pid in base_pool
                 if (
-                    # ha almeno una big nella vita
+                    # ✅ ha avuto almeno una BIG nella carriera
                     len(transfers[
                         (transfers["player_id"] == pid) &
                         (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
                     ]) > 0
                 )
                 and (
-                    # MA non negli ultimi 5 anni
+                    # ✅ MA NON negli ultimi 5 anni
                     len(transfers[
                         (transfers["player_id"] == pid) &
                         (transfers["transfer_date"].dt.year >= min_year) &
                         (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
                     ]) == 0
                 )
-            ]
+            })
 
         else:
-            # ✅ NO BIG NON RECENTI → italiani senza big e non recenti
-            return [
-                pid for pid in base_pool
-                if len(transfers[
-                    (transfers["player_id"] == pid) &
-                    (transfers["transfer_date"].dt.year >= min_year)
-                ]) == 0
-            ]
+
 
 
 def is_first_team(club_name: str) -> bool:
