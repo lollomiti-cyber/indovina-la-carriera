@@ -72,65 +72,52 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
     )
 
-    stints = []
+    # ✅ costruisci sequenza base dei club
+    clubs_timeline = []
 
-    for i, row in df.iterrows():
+    for _, row in df.iterrows():
         club = row["to_club_name"]
-        start_date = row["transfer_date"]
 
-        # durata fino al prossimo trasferimento
-        if i < len(df) - 1:
-            next_date = df.iloc[i + 1]["transfer_date"]
-            duration_days = (next_date - start_date).days
-        else:
-            duration_days = None
-
-        if not stints:
-            stints.append({
-                "club": club,
-                "start_date": start_date,
-                "end_date": None
-            })
+        # evita duplicati consecutivi (es. ritorni tecnici)
+        if len(clubs_timeline) > 0 and clubs_timeline[-1]["club"] == club:
             continue
 
-        last = stints[-1]
-
-        # RUMORE: ritorno allo stesso club
-        if club == last["club"]:
-            continue
-
-        # RUMORE: permanenza troppo breve
-        if duration_days is not None and duration_days < MIN_REAL_STINT_DAYS:
-            continue
-
-        # cambio reale
-        last["end_date"] = start_date
-        stints.append({
+        clubs_timeline.append({
             "club": club,
-            "start_date": start_date,
-            "end_date": None
+            "date": row["transfer_date"]
         })
 
-    # FORMAT UX
+    # ✅ costruisci gli stint
     output = []
-    for stint in stints:
-        start_year = stint["start_date"].year
 
-        if stint["end_date"] is None:
+    for i, item in enumerate(clubs_timeline):
+        club = item["club"]
+        start_date = item["date"]
+
+        if i < len(clubs_timeline) - 1:
+            end_date = clubs_timeline[i + 1]["date"]
+        else:
+            end_date = None
+
+        start_year = start_date.year
+
+        if end_date is None:
             periodo = f"{start_year}-corrente"
         else:
-            end_year = stint["end_date"].year
+            end_year = end_date.year
+
             if start_year == end_year:
                 periodo = f"{start_year}"
             else:
                 periodo = f"{start_year}-{end_year}"
 
         output.append({
-            "Squadra": stint["club"],
+            "Squadra": club,
             "Periodo": periodo
         })
 
     return pd.DataFrame(output)
+
 
 # =========================
 # APP
