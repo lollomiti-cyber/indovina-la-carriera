@@ -171,8 +171,14 @@ st.title("⚽ Indovina la carriera 🇮🇹")
 level = st.selectbox(
     "🎚️ Livello",
     options=[1, 2, 3],
-    format_func=lambda x: f"Livello {x}"
+    format_func=lambda x: 
+{
+        1: "Livello 1 (Big)",
+        2: "Livello 2 (Semi-Big)",
+        3: "Livello 3 (Altro)",
+    }[x]
 )
+
 config = LEVELS[level]
 pool = get_pool(config)
 
