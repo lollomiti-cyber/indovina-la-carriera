@@ -69,10 +69,9 @@ def get_pool(config):
             ]
 
             return filtered
-
     else:
-        # ✅ NON recenti
-        return base_pool
+        # ✅ NON RECENTI (non hanno attività negli ultimi 5 anni)
+        return transfers[(transfers["player_id"].isin(base_pool)) & (transfers["transfer_date"].dt.year < min_year)]["player_id"].unique()
 
 
 def is_first_team(club_name: str) -> bool:
