@@ -155,6 +155,8 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 
 players, transfers, clubs = load_data()
 
+transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"], errors="coerce")
+transfers = transfers.dropna(subset=["transfer_date"])
 current_year = pd.Timestamp.now().year
 min_year = current_year - 5
 
