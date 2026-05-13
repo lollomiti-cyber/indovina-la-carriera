@@ -95,6 +95,14 @@ def get_pool(config):
             })
 
         else:
+            # ✅ LIVELLO 4 → NO BIG e NON recenti
+            return list({
+                pid for pid in base_pool
+                if len(transfers[
+                    (transfers["player_id"] == pid) &
+                    (transfers["transfer_date"].dt.year >= min_year)
+                ]) == 0
+            })
 
 
 
