@@ -34,76 +34,33 @@ def load_data():
 # =========================
 
 def get_pool(config):
-    current_year = pd.Timestamp.now().year
-    min_year = current_year - 5
 
-    # 🔹 base pool: Italia già filtrata a monte
     if config["big"]:
-        base_pool = players_big
+        base = player_stats[player_stats["has_big"] == True]
     else:
-        base_pool = players_not_big
+        base = player_stats[player_stats["has_big"] == False]
 
-    # =========================
-    # ✅ LIVELLI RECENTI
-    # =========================
     if config["recent"]:
         if config["big"]:
-            # ✅ LIVELLO 1 → BIG recenti
-            return list({
-                pid for pid in base_pool
-                if len(transfers[
-                    (transfers["player_id"] == pid) &
-                    (transfers["transfer_date"].dt.year >= min_year) &
-                    (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
-                ]) > 0
-            })
-
+            # BIG recenti
+            return base[base["has_big_recent"] == True]["player_id"].values
         else:
-            # ✅ LIVELLO 3 → NO BIG ma recenti (Italia)
-            return list({
-                pid for pid in base_pool
-                if len(transfers[
-                    (transfers["player_id"] == pid) &
-                    (transfers["transfer_date"].dt.year >= min_year) &
-                    (transfers["to_club_id"].isin(italian_clubs_ids))
-                ]) > 0
-            })
+            # NO BIG recenti
+            return base[base["has_recent"] == True]["player_id"].values
 
-    # =========================
-    # ✅ LIVELLI NON RECENTI
-    # =========================
     else:
         if config["big"]:
-            # ✅ LIVELLO 2 → BIG ma NON recenti
-            return list({
-                pid for pid in base_pool
-                if (
-                    # ✅ ha avuto almeno una BIG nella carriera
-                    len(transfers[
-                        (transfers["player_id"] == pid) &
-                        (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
-                    ]) > 0
-                )
-                and (
-                    # ✅ MA NON negli ultimi 5 anni
-                    len(transfers[
-                        (transfers["player_id"] == pid) &
-                        (transfers["transfer_date"].dt.year >= min_year) &
-                        (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
-                    ]) == 0
-                )
-            })
+            # BIG non recenti
+            return base[
+                (base["has_big"] == True) &
+                (base["has_big_recent"] == False)
+            ]["player_id"].values
 
         else:
-            # ✅ LIVELLO 4 → NO BIG e NON recenti
-            return list({
-                pid for pid in base_pool
-                if len(transfers[
-                    (transfers["player_id"] == pid) &
-                    (transfers["transfer_date"].dt.year >= min_year)
-                ]) == 0
-            })
-
+            # NO BIG non recenti
+            return base[
+                base["has_recent"] == False
+            ]["player_id"].values
 
 
 def is_first_team(club_name: str) -> bool:
@@ -197,6 +154,22 @@ def build_career(transfers_player: pd.DataFrame) -> pd.DataFrame:
 # =========================
 
 players, transfers, clubs = load_data()
+
+current_year = pd.Timestamp.now().year
+min_year = current_year - 5
+
+# groupby per player
+player_stats = transfers.groupby("player_id").agg(
+    has_big=("to_club_id", lambda x: x.isin(BIG_CLUBS_IDS).any()),
+    has_big_recent=("transfer_date", lambda x: any(
+        (transfers.loc[x.index, "to_club_id"].isin(BIG_CLUBS_IDS)) &
+        (transfers.loc[x.index, "transfer_date"].dt.year >= min_year)
+    )),
+    has_recent=("transfer_date", lambda x: any(
+        transfers.loc[x.index, "transfer_date"].dt.year >= min_year
+    ))
+).reset_index()
+
 
 transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"],errors="coerce")
 italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
