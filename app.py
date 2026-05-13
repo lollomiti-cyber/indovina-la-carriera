@@ -43,13 +43,36 @@ def get_pool(config):
         base_pool = players_not_big
 
     if config["recent"]:
-        return transfers[
-            (transfers["player_id"].isin(base_pool)) &
-            (transfers["transfer_date"].dt.year >= min_year) &
-            (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
-        ]["player_id"].unique()
-    
-    return base_pool
+        if config["big"]:
+            # ✅ BIG recenti
+            return transfers[
+                (transfers["player_id"].isin(base_pool)) &
+                (transfers["transfer_date"].dt.year >= min_year) &
+                (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
+            ]["player_id"].unique()
+
+        else:
+            # ✅ NO BIG recenti
+            recent_players = transfers[
+                (transfers["player_id"].isin(base_pool)) &
+                (transfers["transfer_date"].dt.year >= min_year) &
+                (transfers["to_club_id"].isin(italian_clubs_ids))
+            ]["player_id"].unique()
+
+            # ✅ filtro qualità (minimo 2 movimenti recenti)
+            filtered = [
+                pid for pid in recent_players
+                if len(transfers[
+                    (transfers["player_id"] == pid) &
+                    (transfers["transfer_date"].dt.year >= min_year)
+                ]) >= 2
+            ]
+
+            return filtered
+
+    else:
+        # ✅ NON recenti
+        return base_pool
 
 
 def is_first_team(club_name: str) -> bool:
