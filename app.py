@@ -141,11 +141,41 @@ players, transfers, clubs = load_data()
 transfers["transfer_date"] = pd.to_datetime(transfers["transfer_date"], errors="coerce")
 transfers = transfers.dropna(subset=["transfer_date"])
 italian_clubs_ids = clubs[clubs["domestic_competition_id"] == "IT1"]["club_id"].unique()
-players_italy = transfers[(transfers["to_club_id"].isin(italian_clubs_ids)) | (transfers["from_club_id"].isin(italian_clubs_ids))]["player_id"].unique()
-players_big = transfers[((transfers["to_club_id"].isin(BIG_CLUBS_IDS)) | (transfers["from_club_id"].isin(BIG_CLUBS_IDS))) & (transfers["player_id"].isin(players_italy))]["player_id"].unique()
-players_semi_big = transfers[((transfers["to_club_id"].isin(SEMI_BIG_CLUBS_IDS)) | (transfers["from_club_id"].isin(SEMI_BIG_CLUBS_IDS))) & (transfers["player_id"].isin(players_italy))]["player_id"].unique()
-players_level2 = [pid for pid in players_semi_big if pid not in players_big]
-players_level3 = [pid for pid in players_italy if pid not in players_big and pid not in players_semi_big]
+
+# ✅ giocatori che hanno almeno un passaggio in Italia
+players_italy = transfers[
+    (transfers["to_club_id"].isin(italian_clubs_ids)) |
+    (transfers["from_club_id"].isin(italian_clubs_ids))
+]["player_id"].unique()
+
+# ✅ giocatori BIG (solo tra quelli italiani)
+players_big = transfers[
+    (
+        (transfers["to_club_id"].isin(BIG_CLUBS_IDS)) |
+        (transfers["from_club_id"].isin(BIG_CLUBS_IDS))
+    )
+    & (transfers["player_id"].isin(players_italy))
+]["player_id"].unique()
+
+# ✅ giocatori SEMI-BIG (solo italiani)
+players_semi_big = transfers[
+    (
+        (transfers["to_club_id"].isin(SEMI_BIG_CLUBS_IDS)) |
+        (transfers["from_club_id"].isin(SEMI_BIG_CLUBS_IDS))
+    )
+    & (transfers["player_id"].isin(players_italy))
+]["player_id"].unique()
+
+# ✅ livello 2 → SEMI BIG ma NON BIG
+players_level2 = list(
+    set(players_semi_big) - set(players_big)
+)
+
+# ✅ livello 3 → italiani senza BIG e senza SEMI BIG
+players_level3 = list(
+    set(players_italy) - set(players_big) - set(players_semi_big)
+)
+
 
 # ✅ DEFINITO QUI (PRIMA DEL LAYOUT)
 
