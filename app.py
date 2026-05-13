@@ -44,7 +44,7 @@ def get_pool(config):
 
     if config["recent"]:
         if config["big"]:
-            # ✅ BIG recenti
+            # ✅ BIG RECENTI → ha giocato in una big negli ultimi 5 anni
             return transfers[
                 (transfers["player_id"].isin(base_pool)) &
                 (transfers["transfer_date"].dt.year >= min_year) &
@@ -52,26 +52,44 @@ def get_pool(config):
             ]["player_id"].unique()
 
         else:
-            # ✅ NO BIG recenti
-            recent_players = transfers[
+            # ✅ NO BIG RECENTI → italiani recenti senza big
+            return transfers[
                 (transfers["player_id"].isin(base_pool)) &
                 (transfers["transfer_date"].dt.year >= min_year) &
                 (transfers["to_club_id"].isin(italian_clubs_ids))
             ]["player_id"].unique()
 
-            # ✅ filtro qualità (minimo 2 movimenti recenti)
-            filtered = [
-                pid for pid in recent_players
+    else:
+        if config["big"]:
+            # ✅ BIG NON RECENTI → ha giocato in una big MA NON negli ultimi 5 anni
+            return [
+                pid for pid in base_pool
+                if (
+                    # ha almeno una big nella vita
+                    len(transfers[
+                        (transfers["player_id"] == pid) &
+                        (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
+                    ]) > 0
+                )
+                and (
+                    # MA non negli ultimi 5 anni
+                    len(transfers[
+                        (transfers["player_id"] == pid) &
+                        (transfers["transfer_date"].dt.year >= min_year) &
+                        (transfers["to_club_id"].isin(BIG_CLUBS_IDS))
+                    ]) == 0
+                )
+            ]
+
+        else:
+            # ✅ NO BIG NON RECENTI → italiani senza big e non recenti
+            return [
+                pid for pid in base_pool
                 if len(transfers[
                     (transfers["player_id"] == pid) &
                     (transfers["transfer_date"].dt.year >= min_year)
-                ]) >= 2
+                ]) == 0
             ]
-
-            return filtered
-    else:
-        # ✅ NON RECENTI (non hanno attività negli ultimi 5 anni)
-        return transfers[(transfers["player_id"].isin(base_pool)) & (transfers["transfer_date"].dt.year < min_year)]["player_id"].unique()
 
 
 def is_first_team(club_name: str) -> bool:
